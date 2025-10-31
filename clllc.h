@@ -25,7 +25,8 @@ extern "C" {
 
 //  self-define
 #include "Ai_CLLLC_ADC_settings.h"
-//
+#include "Ai_CLLLC_Protection_settings.h"
+#include "Ai_CLLLC_NTC_settings.h"
 
 // Library header files
 // DCL Library is used for the controller implementation
@@ -266,13 +267,11 @@ extern float32_t CLC_pwmPeriodMax_pu;
 extern float32_t CLC_pwmPeriodMax_ticks;
 extern uint32_t CLC_pwmPeriod_ticks;
 
-//
 // 1- Primary Side (PFC-Inv/Bus)
-//
-extern float32_t CLC_iPrimSense_Amp;
-extern float32_t CLC_iPrimSense_pu;
-extern float32_t CLC_iPrimSenseOff_pu;
-extern EMAVG CLC_iPrimSenseAvg_pu;
+extern float32_t CLC_iPrimTankSense_Amp;
+extern float32_t CLC_iPrimTankSense_pu;
+extern float32_t CLC_iPrimTankSenseOff_pu;
+extern EMAVG CLC_iPrimTankSenseAvg_pu;
 
 extern float32_t CLC_iPrimTankSense_Amp;
 extern float32_t CLC_iPrimTankSense_pu;
@@ -343,14 +342,12 @@ extern int32_t CLC_pwmPhaseShiftPrimSec_ticks;
 extern int16_t CLC_pwmPhaseShiftPrimSec_countDirection;
 
 // Herman Temperature BUS port
-extern float32_t CLC_THBUS_pu;
-extern float32_t CLC_THBUSSense_Deg;
-extern float32_t CLC_THbusSenseOff_pu;
+extern float32_t CLC_BusTemp_Sense_pu;
+extern uint16_t CLC_BusTemp_Sense_Deg;
+extern float32_t CLC_BusTemp_SenseOff_pu;
 
 // Herman Temperature HV port
-extern float32_t CLC_TH_HV_pu;
-extern float32_t CLC_TH_HV_Deg;
-extern float32_t CLC_THhvSenseOff_pu;
+//extern float32_12 CLC_THhvSenseOff_pu;
 
 
 extern volatile uint16_t CLC_pwmISRTrig_ticks;
@@ -423,31 +420,40 @@ extern float Inv_CLC_VSEC_MAX_SENSE_VOLTS;
 
 extern uint16_t receivedChar[64], writedChar[64];
 
+extern uint16_t iPrimTank_ADCvalue, vPrim_ADCvalue, iSec_ADCvalue, vSec_ADCvalue;
+
 #pragma FUNC_ALWAYS_INLINE(CLC_readSenseSignalsPrimToSecPowerFlow)
 static inline void CLC_readSenseSignalsPrimToSecPowerFlow(void)
 {
-    CLC_iPrimSense_pu = ((float32_t)CLC_IPRIM_TANK_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_iPrimSenseOff_pu) * 2.0;
+    iPrimTank_ADCvalue = CLC_IPRIM_TANK_OV_SAMPLE_ADC;
+    vPrim_ADCvalue = CLC_VPRIM_OV_SAMPLE_ADC;
+    iSec_ADCvalue = CLC_ISEC_OV_SAMPLE_ADC;
+    vSec_ADCvalue = CLC_VSEC_OV_SAMPLE_ADC;
 
-    CLC_iSecSense_pu = ((float32_t)CLC_ISEC_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_iSecSenseOff_pu) * 2.0;
+    CLC_iPrimTankSense_pu = ((float32_t)iPrimTank_ADCvalue * CLC_ADC_PU_SCALE_FACTOR - CLC_iPrimTankSenseOff_pu) * 2.0;
 
-    CLC_vPrimSense_pu = ((float32_t)CLC_VPRIM_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_vPrimSenseOff_pu);
+    CLC_iSecSense_pu = ((float32_t)iSec_ADCvalue * CLC_ADC_PU_SCALE_FACTOR - CLC_iSecSenseOff_pu) * 2.0;
 
-    CLC_vSecSense_pu = ((float32_t)CLC_VSEC_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_vSecSenseOff_pu);
+    CLC_vPrimSense_pu = ((float32_t)vPrim_ADCvalue * CLC_ADC_PU_SCALE_FACTOR - CLC_vPrimSenseOff_pu);
+
+    CLC_vSecSense_pu = ((float32_t)vSec_ADCvalue * CLC_ADC_PU_SCALE_FACTOR - CLC_vSecSenseOff_pu);
+
+    CLC_BusTemp_Sense_pu = CLC_NTC_ADCREAD_1 * CLC_ADC_PU_SCALE_FACTOR - CLC_BusTemp_SenseOff_pu;
 }
 
 #pragma FUNC_ALWAYS_INLINE(CLC_readSenseSignalsSecToPrimPowerFlow)
 static inline void CLC_readSenseSignalsSecToPrimPowerFlow(void)
 {
-    CLC_iPrimSense_pu = ((float32_t)CLC_IPRIM_TANK_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_iPrimSenseOff_pu) * -2.0;
+    CLC_iPrimTankSense_pu = ((float32_t)CLC_IPRIM_TANK_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_iPrimTankSenseOff_pu) * -2.0;
 
     CLC_iSecSense_pu = ((float32_t)CLC_ISEC_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_iSecSenseOff_pu) * 2.0;
 
     CLC_vPrimSense_pu = ((float32_t)CLC_VPRIM_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR - CLC_vPrimSenseOff_pu);
 
     CLC_vSecSense_pu = ((float32_t)CLC_VSEC_OV_SAMPLE_ADC * CLC_ADC_PU_SCALE_FACTOR) - CLC_vSecSenseOff_pu;
-}
 
-
+    CLC_BusTemp_Sense_pu = CLC_NTC_ADCREAD_1 * CLC_ADC_PU_SCALE_FACTOR - CLC_BusTemp_SenseOff_pu;
+};
 
 #pragma FUNC_ALWAYS_INLINE(CLC_calculatePWMDutyPeriodPhaseShiftTicks_primToSecPowerFlow)
 static inline void CLC_calculatePWMDutyPeriodPhaseShiftTicks_primToSecPowerFlow(void)
@@ -458,7 +464,7 @@ static inline void CLC_calculatePWMDutyPeriodPhaseShiftTicks_primToSecPowerFlow(
     // for this multiply by 2^16 , and divide by 1 (using left shift)
     // as the PWM is up down count mode
     temp = ((uint32_t)(((float32_t)(CLC_pwmPeriodSlewed_pu * CLC_pwmPeriodMax_ticks) *
-                       (float32_t)TWO_RAISED_TO_THE_POWER_SIXTEEN)))>> 1;
+                       (float32_t)TWO_RAISED_TO_THE_POWER_SIXTEEN))) >> 1;
 
     // next zero the lower 8 bits, as they are not part of TBPRDHR register
     CLC_pwmPeriod_ticks = temp & 0xFFFFFF00;
@@ -509,9 +515,11 @@ static inline void CLC_calculatePWMDeadBandPrimTicks(void)
     CLC_pwmDeadBandFEDPrim_ticks = (ticks & 0xFFFFFE00);
 
 }
+
 #pragma FUNC_ALWAYS_INLINE(EPWM_setCounterCompareValue)
 #pragma FUNC_ALWAYS_INLINE(EPWM_enablePhaseShiftLoad)
 #pragma FUNC_ALWAYS_INLINE(CLC_runISR1)
+// update period, duty ratio and phase shift, and enable phase shift loading
 static inline void CLC_runISR1(void)
 {
     CLC_HAL_updatePWMDutyPeriodPhaseShift(CLC_pwmPeriod_ticks, CLC_pwmDutyAPrim_ticks, CLC_pwmDutyBPrim_ticks,
@@ -528,28 +536,29 @@ static inline void CLC_runISR1(void)
 }
 
 #pragma FUNC_ALWAYS_INLINE(CLC_runISR1_secondTime)
+// disable the phase shift loading
 static inline void CLC_runISR1_secondTime(void)
 {
     EPWM_disablePhaseShiftLoad(CLC_SEC_LEG1_PWM_BASE);
-    CLC_HAL_setupISR1Trigger(CLC_MIN_PWM_SWITCH_FREQ_HZ * 0.3);
+    CLC_HAL_setupISR1Trigger(CLC_MIN_PWM_SWITCH_FREQ_HZ * 0.3); // why it redefine a freq ??????
     CLC_HAL_clearISR1PeripheralInterruptFlag();
 }
 
 #pragma FUNC_ALWAYS_INLINE(CLC_runISR2_primToSecPowerFlow)
-//#pragma CODE_SECTION(CLC_runISR2_primToSecPowerFlow, "Cla1Prog");  Herman not used
-
+//#pragma CODE_SECTION(CLC_runISR2_primToSecPowerFlow, "Cla1Prog");
 static inline void CLC_runISR2_primToSecPowerFlow(void)
 {
     uint16_t uwSyntmp1;
     float32_t flPSM_PhaseShift_ticks_tmp;
 
-    // let curr ctrl form 100kHz to 1kHz
+    // Read the sensed value (let curr ctrl form 100kHz to 1kHz)
     CLC_readSenseSignalsPrimToSecPowerFlow();
-
+    //
+    // release the protection logic
     if(CLC_clearTrip == 1)
     {
-        CLC_HAL_clearPWMTripFlags(CLC_PRIM_LEG1_PWM_BASE);
-        CLC_HAL_clearPWMTripFlags(CLC_SEC_LEG1_PWM_BASE);
+        EPWM_clearTripZoneFlag(CLC_PRIM_LEG1_PWM_BASE, (EPWM_TZ_FLAG_DCAEVT1 | EPWM_TZ_FLAG_CBC | EPWM_TZ_FLAG_OST));
+        EPWM_clearTripZoneFlag(CLC_SEC_LEG1_PWM_BASE, (EPWM_TZ_FLAG_DCAEVT1 | EPWM_TZ_FLAG_CBC | EPWM_TZ_FLAG_OST));
 
         asm(" RPT #1 || NOP");
 
@@ -564,7 +573,8 @@ static inline void CLC_runISR2_primToSecPowerFlow(void)
         CLC_clearTrip = 0;
 
     }
-
+    //
+    // average to filter, obtain much smooth signals
     DividFreq_Ctrl_cnt++;
     CLC_vPrimSense_pu_ACC += CLC_vPrimSense_pu;
     CLC_iSecSense_pu_ACC += CLC_iSecSense_pu;
@@ -573,9 +583,9 @@ static inline void CLC_runISR2_primToSecPowerFlow(void)
     if(DividFreq_Ctrl_cnt == (uint16_t)OSL_Curr_catch_time)
     {
         DividFreq_Ctrl_cnt = 0;
-        CLC_iSecSense_pu_flr = CLC_iSecSense_pu_ACC*OSL_Curr_catch_time_ratio;
-        CLC_vSecSense_pu_flr = CLC_vSecSense_pu_ACC*OSL_Curr_catch_time_ratio;
-        CLC_vPrimSense_pu_flr = CLC_vPrimSense_pu_ACC*OSL_Curr_catch_time_ratio;
+        CLC_iSecSense_pu_flr = CLC_iSecSense_pu_ACC * OSL_Curr_catch_time_ratio;
+        CLC_vSecSense_pu_flr = CLC_vSecSense_pu_ACC * OSL_Curr_catch_time_ratio;
+        CLC_vPrimSense_pu_flr = CLC_vPrimSense_pu_ACC * OSL_Curr_catch_time_ratio;
         CLC_iSecSense_pu_ACC = 0;
         CLC_vSecSense_pu_ACC = 0;
         CLC_vPrimSense_pu_ACC = 0;
@@ -583,32 +593,32 @@ static inline void CLC_runISR2_primToSecPowerFlow(void)
 
     CLC_HAL_clearISR2PeripheralInterruptFlag();
 
-     /* Modify to change in the PWM on every time Interrupt */
+    // update PWM's duty ratio and phase shift (Modify to change in the PWM on every time Interrupt)
     CLC_pwmDutyPrim_pu = CLC_pwmDutyPrimRef_pu;
     CLC_pwmDutySec_pu = CLC_pwmDutySecRef_pu;
     CLC_pwmPhaseShiftPrimSec_ns = CLC_pwmPhaseShiftPrimSecRef_ns;
 
     CLC_calculatePWMDutyPeriodPhaseShiftTicks_primToSecPowerFlow();
-
+    //
+    // arrange ISR1 trigger timing
     CLC_HAL_setupISR1Trigger(CLC_pwmFrequencyPrev_Hz);
-
     CLC_pwmFrequencyPrev_Hz = CLC_pwmFrequency_Hz;
 
     #if CLC_ISR1_RUNNING_ON == CLA_CORE
-          CLC_pwmISRTrig_ticks =
-                 ((TICKS_IN_PWM_FREQUENCY(CLC_pwmFrequency_Hz,
-                                      CLC_PWMSYSCLOCK_FREQ_HZ)>> 1) - 20);
+          CLC_pwmISRTrig_ticks = ((TICKS_IN_PWM_FREQUENCY(CLC_pwmFrequency_Hz, CLC_PWMSYSCLOCK_FREQ_HZ)>>1) - 20);
     #else
-          CLC_pwmISRTrig_ticks =
-                 ((TICKS_IN_PWM_FREQUENCY(CLC_pwmFrequency_Hz,
-                                      CLC_PWMSYSCLOCK_FREQ_HZ)>> 1) - 27);  //27
+          CLC_pwmISRTrig_ticks = ((TICKS_IN_PWM_FREQUENCY(CLC_pwmFrequency_Hz, CLC_PWMSYSCLOCK_FREQ_HZ)>>1) - 27);  //27
     #endif
 
+    // phase shift modulation
     #if(PSM_Enable)
         flPSM_PhaseShift_ticks_tmp = (float)(CLC_pwmPeriod_ticks) * fl_PSM_shift_SlewedAngle;
         uwPSM_PhaseShift_ticks = (uint16_t)(((uint32_t)(flPSM_PhaseShift_ticks_tmp*0.0027777777777778f))>>15);  // 0.00277 = 1/360
     #endif
 
+    // EPWM_setDigitalCompareWindowOffset is to postpone the window creating
+    // EPWM_setDigitalCompareWindowLength is to set the window time
+    // "Window" is to inhibit the trip behaviors
     #if(SynREC)
         uwSyntmp1 = (uint16_t)((flWindow_OFF_us)*95.58823529411765);  // fix 820ns turn on delay
 
@@ -620,7 +630,7 @@ static inline void CLC_runISR2_primToSecPowerFlow(void)
 #pragma FUNC_ALWAYS_INLINE(CLC_Ctrl)
 static inline void CLC_Ctrl(void)
 {
-    static uint16_t uwEnterInPSMstateCnt = 0, uwEnterOutPSMstateCnt = 0;
+    static uint16_t uwEnterInPSMstateCnt=0, uwEnterOutPSMstateCnt=0;
 
     //CLC_iSecSense_pu_flr = CLC_iSecSense_pu_flr*Y_Filter_Curr + CLC_iSecSense_pu * X_Filter_Curr;
 
@@ -629,28 +639,27 @@ static inline void CLC_Ctrl(void)
         #if Control_Type == TI_DCL
             CLC_giOut = CLC_GI_IMMEDIATE_RUN(&CLC_gi, CLC_giError, CLC_giPartialComputedValue);
 
-        if(CLC_giOut > CLC_GI_OUT_MAX)
-            CLC_giOut = CLC_GI_OUT_MAX;
-        if(CLC_giOut < CLC_GI_OUT_MIN)
-            CLC_giOut = CLC_GI_OUT_MIN;
+            if(CLC_giOut > CLC_GI_OUT_MAX)
+                CLC_giOut = CLC_GI_OUT_MAX;
+            if(CLC_giOut < CLC_GI_OUT_MIN)
+                CLC_giOut = CLC_GI_OUT_MIN;
 
-        CLC_giPartialComputedValue = CLC_GI_PRECOMPUTE_RUN(&CLC_gi, CLC_giError, CLC_giOut);
+            CLC_giPartialComputedValue = CLC_GI_PRECOMPUTE_RUN(&CLC_gi, CLC_giError, CLC_giOut);
 
-        if(CLC_giOut < CLC_pwmPeriodMin_pu)
-            CLC_giOut = CLC_pwmPeriodMin_pu;
+            if(CLC_giOut < CLC_pwmPeriodMin_pu)
+                CLC_giOut = CLC_pwmPeriodMin_pu;
 
-        CLC_pwmPeriod_pu = CLC_giOut;
+            CLC_pwmPeriod_pu = CLC_giOut;
 
         #else
-        CLC_giOut = CLLC_GV_antiWinup_PI(&CLLC_Gi_Antiwinup_PI, CLC_giError );
+            CLC_giOut = CLLC_GV_antiWinup_PI(&CLLC_Gi_Antiwinup_PI, CLC_giError);
 
-        CLC_pwmPeriod_pu = (CLC_MIN_PWM_SWITCH_FREQ_HZ /CLC_giOut);
+            CLC_pwmPeriod_pu = CLC_MIN_PWM_SWITCH_FREQ_HZ / CLC_giOut;
 
-        if(CLC_pwmPeriod_pu < CLC_pwmPeriodMin_pu)
-            CLC_pwmPeriod_pu = CLC_pwmPeriodMin_pu;
-        else if(CLC_pwmPeriod_pu > 1.0)
-            CLC_pwmPeriod_pu = 1.0;
-
+            if(CLC_pwmPeriod_pu < CLC_pwmPeriodMin_pu)
+                CLC_pwmPeriod_pu = CLC_pwmPeriodMin_pu;
+            else if(CLC_pwmPeriod_pu > 1.0)
+                CLC_pwmPeriod_pu = 1.0;
         #endif
     }
     else if(CLC_closeGvLoop == 1)
@@ -673,14 +682,14 @@ static inline void CLC_Ctrl(void)
         #else
             if(uwPSM_enable == 0U)
             {
-                CLC_gvOut = CLLC_GV_antiWinup_PI(&CLLC_Gv_Antiwinup_PI, CLC_gvError );
+                CLC_gvOut = CLLC_GV_antiWinup_PI(&CLLC_Gv_Antiwinup_PI, CLC_gvError);
 
                 if(CLC_gvOut == CLLC_Gv_Antiwinup_PI.Saturation_UpperSat)
                     uwEnterInPSMstateCnt++;
                 else
                     uwEnterInPSMstateCnt = 0;
 
-                CLC_pwmPeriod_pu = (CLC_MIN_PWM_SWITCH_FREQ_HZ /CLC_gvOut);
+                CLC_pwmPeriod_pu = CLC_MIN_PWM_SWITCH_FREQ_HZ / CLC_gvOut;
 
                 if(CLC_pwmPeriod_pu < CLC_pwmPeriodMin_pu)
                 {
@@ -697,17 +706,17 @@ static inline void CLC_Ctrl(void)
                     //uwPSM_enable = 1U;  // Chancel to input PSM mode
                     uwEnterInPSMstateCnt = 0;
                     uwEnterOutPSMstateCnt = 0;
-                }else
+                }
+                else
                 {
                      /* do nothing */
                 }
 
                  //flOslPFMfreqCmd = CLC_gvOut;
-
             }
             else
             {
-                PSM_gvOut = CLLC_GV_antiWinup_PI(&PSM_Gv_Antiwinup_PI, PSM_gvError );
+                PSM_gvOut = CLLC_GV_antiWinup_PI(&PSM_Gv_Antiwinup_PI, PSM_gvError);
 
                 if(PSM_gvOut == PSM_MIN_angle)
                     uwEnterOutPSMstateCnt++;
@@ -731,34 +740,6 @@ static inline void CLC_Ctrl(void)
     }
     else
     {
-        /*
-        CLC_gi.d4 = CLC_pwmPeriod_pu;
-        CLC_gi.d5 = CLC_pwmPeriod_pu;
-        CLC_gi.d6 = CLC_pwmPeriod_pu;
-        CLC_gi.d7 = CLC_pwmPeriod_pu;
-
-        CLC_gv.d4 = CLC_pwmPeriod_pu;
-        CLC_gv.d5 = CLC_pwmPeriod_pu;
-        CLC_gv.d6 = CLC_pwmPeriod_pu;
-        CLC_gv.d7 = CLC_pwmPeriod_pu;
-
-        CLC_giError = (CLC_iSecRefSlewed_pu - CLC_iSecSense_pu);
-        CLC_gi.d0 = CLC_giError;
-        CLC_gi.d1 = CLC_giError;
-        CLC_gi.d2 = CLC_giError;
-        CLC_gi.d3 = CLC_giError;
-
-        CLC_giPartialComputedValue = CLC_pwmPeriod_pu;
-
-        CLC_gvError = (CLC_vSecRefSlewed_pu - CLC_vSecSense_pu);
-        CLC_gv.d0 = CLC_gvError;
-        CLC_gv.d1 = CLC_gvError;
-        CLC_gv.d2 = CLC_gvError;
-        CLC_gv.d3 = CLC_gvError;
-
-        CLC_gvPartialComputedValue = CLC_pwmPeriod_pu;
-        */
-
         #if CLC_INCR_BUILD == CLC_OPEN_LOOP_BUILD
             #if CLC_SFRA_TYPE != CLC_SFRA_DISABLED
                 CLC_pwmPeriod_pu = CLC_SFRA_INJECT(CLC_pwmPeriodRef_pu);
@@ -770,6 +751,7 @@ static inline void CLC_Ctrl(void)
                 CLC_Initial_PFM_Hz = CLC_MAX_PWM_SWITCH_FREQ_HZ;
             else if(CLC_Initial_PFM_Hz< CLC_MIN_PWM_SWITCH_FREQ_HZ)
                 CLC_Initial_PFM_Hz = CLC_MIN_PWM_SWITCH_FREQ_HZ;
+
             CLC_pwmPeriod_pu = (CLC_MIN_PWM_SWITCH_FREQ_HZ /CLC_Initial_PFM_Hz);
         #endif
     }
@@ -778,34 +760,31 @@ static inline void CLC_Ctrl(void)
 #pragma FUNC_ALWAYS_INLINE(CLC_PSM_Ctrl)
 static inline void CLC_PSM_Ctrl(void)
 {
-    static uint16_t uwEnterInPSMstateCnt = 0, uwEnterOutPSMstateCnt = 0;
+    static uint16_t uwEnterInPSMstateCnt=0, uwEnterOutPSMstateCnt=0;
 
     //CLC_iSecSense_pu_flr = CLC_iSecSense_pu_flr*Y_Filter_Curr + CLC_iSecSense_pu * X_Filter_Curr;
     //not use it.
-    if(CLC_closeGiLoop == 1)
+    if(CLC_closeGiLoop)
     {
         // CLC_iSecSense_pu_flr = CLC_iSecSense_pu_flr*Y_Filter_Curr + CLC_iSecSense_pu * X_Filter_Curr;
         /* Add CLC_iSecRefSlewed_pu limit by Vinput */
-        CLC_giError = CLC_iSecSense_pu_flr - CLC_iSecRefSlewed_pu ;
-        CLC_giOut = CLLC_GV_antiWinup_PI(&CLLC_Gi_Antiwinup_PI, CLC_giError );
+        CLC_giError = CLC_iSecSense_pu_flr - CLC_iSecRefSlewed_pu;
+        CLC_giOut = CLLC_GV_antiWinup_PI(&CLLC_Gi_Antiwinup_PI, CLC_giError);
         CLC_pwmPeriod_pu = (CLC_MIN_PWM_SWITCH_FREQ_HZ /CLC_giOut);
+
         if(CLC_pwmPeriod_pu < CLC_pwmPeriodMin_pu)
-        {
-        CLC_pwmPeriod_pu = CLC_pwmPeriodMin_pu;
-        }
+            CLC_pwmPeriod_pu = CLC_pwmPeriodMin_pu;
         else if(CLC_pwmPeriod_pu > 1.0)
-        {
             CLC_pwmPeriod_pu = 1.0;
-        }
     }
-    else if(CLC_closeGvLoop == 1)
+    else if(CLC_closeGvLoop)
     {
         //CLC_gvError = ( CLC_vSecSense_pu - CLC_vSecRefSlewed_pu );  // CLC_vSecRefSlewed_pu - CLC_vSecSense_pu;
-        PSM_gvError = ( CLC_vSecSense_pu - CLC_vSecRefSlewed_pu );
+        PSM_gvError = (CLC_vSecSense_pu - CLC_vSecRefSlewed_pu);
 
-        if(uwPSM_enable == 0U)
+        if(!uwPSM_enable)
         {
-            CLC_gvOut = CLLC_GV_antiWinup_PI(&CLLC_Gv_Antiwinup_PI, CLC_gvError );
+            CLC_gvOut = CLLC_GV_antiWinup_PI(&CLLC_Gv_Antiwinup_PI, CLC_gvError);
 
             if(CLC_gvOut == CLLC_Gv_Antiwinup_PI.Saturation_UpperSat)
                 uwEnterInPSMstateCnt++;
@@ -822,7 +801,7 @@ static inline void CLC_PSM_Ctrl(void)
             if(uwEnterInPSMstateCnt > uwEnterInPSMstateCntLvl)
             {
                 //For Master, It just turn PFM, not PSM
-                //uwPSM_enable = 1U;  // Chancel to input PSM mode
+                //uwPSM_enable = 1U;  // Cancel to input PSM mode
                 uwEnterInPSMstateCnt = 0;
                 uwEnterOutPSMstateCnt = 0;
             }
@@ -853,16 +832,14 @@ static inline void CLC_PSM_Ctrl(void)
             {
                      /* do nothing */
             }
-
             fl_PSM_shift_Angle = PSM_gvOut;
         }
-
     }
     else
     {
-        if(CLC_Initial_PFM_Hz> CLC_MAX_PWM_SWITCH_FREQ_HZ)
+        if(CLC_Initial_PFM_Hz > CLC_MAX_PWM_SWITCH_FREQ_HZ)
             CLC_Initial_PFM_Hz = CLC_MAX_PWM_SWITCH_FREQ_HZ;
-        else if(CLC_Initial_PFM_Hz< CLC_MIN_PWM_SWITCH_FREQ_HZ)
+        else if(CLC_Initial_PFM_Hz < CLC_MIN_PWM_SWITCH_FREQ_HZ)
             CLC_Initial_PFM_Hz = CLC_MIN_PWM_SWITCH_FREQ_HZ;
 
         CLC_pwmPeriod_pu = (CLC_MIN_PWM_SWITCH_FREQ_HZ /CLC_Initial_PFM_Hz);
@@ -875,9 +852,9 @@ static inline void CLC_PSM_Ctrl(void)
 static inline void CLLC_AvgCurr_Ctrl(void)
 {
     // CLC_iSecSense_pu_flr = CLC_iSecSense_pu_flr*Y_Filter_Curr + CLC_iSecSense_pu * X_Filter_Curr;
-    PSM_giError = (CLC_iSecSense_pu_flr - CLC_iSecRef_pu );
+    PSM_giError = CLC_iSecSense_pu_flr - CLC_iSecRef_pu;
 
-    PSM_giOut = CLLC_GV_antiWinup_PI(&PSM_Gi_Antiwinup_PI, PSM_giError );
+    PSM_giOut = CLLC_GV_antiWinup_PI(&PSM_Gi_Antiwinup_PI, PSM_giError);
     fl_PSM_shift_Angle = PSM_giOut;
 }
 

@@ -1,0 +1,128 @@
+//#############################################################################
+//
+// FILE:   clllc_clatasks.cla
+//
+// TITLE: CLA Task file
+//
+//#############################################################################
+//#############################################################################
+// $TI Release: TIDM_02002 v2.00.03.00 $
+// $Release Date: Fri Feb 25 04:13:41 CST 2022 $
+// $Copyright:
+// Copyright (C) 2022 Texas Instruments Incorporated - http://www.ti.com/
+//
+// ALL RIGHTS RESERVED
+// $
+//#############################################################################
+
+#include "clllc.h"
+
+//
+// Task 1
+//
+__attribute__((interrupt))  void Cla1Task1 ( void )
+{
+
+    #if(CLA_DEBUG == 1)
+        __mdebugstop();
+    #endif
+
+    #if CLC_ISR1_RUNNING_ON == CLA_CORE
+        //CLC_HAL_setProfilingGPIO1();
+
+        // similar to the C28x core, when there is a change to the PWM registers
+        // a one time sync is enabled after updating the PWM registers
+        // the sync is disabled in the next ISR occurrence to enable Hi-Res
+        // on CLA this is handled by keeping count of the first execution
+        // of the ISR and the second using CLC_cla_task_counter
+        // global variable.
+        if(CLC_cla_task_counter == 0)
+        {
+            CLC_runISR1();
+            CLC_cla_task_counter++;
+        }
+        else
+        {
+            CLC_runISR1_secondTime();
+            CLC_cla_task_counter = 0;
+        }
+        //CLC_HAL_resetProfilingGPIO1();
+
+    #endif
+
+    #if(CLA_DEBUG == 1)
+        __mdebugstop();
+    #endif
+
+}
+
+//
+// Task 2 - Title Here
+//
+__attribute__((interrupt))  void Cla1Task2 ( void )
+{
+
+}
+
+//
+// Task 3 - Title Here
+//
+__attribute__((interrupt))  void Cla1Task3 ( void )
+{
+
+}
+
+//
+// Task 4 - Title Here
+//
+__attribute__((interrupt))  void Cla1Task4 ( void )
+{
+
+}
+
+//
+// Task 5 - Title Here
+//
+__attribute__((interrupt))  void Cla1Task5 ( void )
+{
+
+}
+
+//
+// Task 6 - Title Here
+//
+__attribute__((interrupt))  void Cla1Task6 ( void )
+{
+
+}
+
+//
+// Task 7 - One Time Initialization Task
+//
+__attribute__((interrupt))  void Cla1Task7 ( void )
+{
+
+}
+
+//
+// Background Task
+//
+#if(0)
+__attribute__((interrupt("background")))  void Cla1BackgroundTask ( void )
+{
+    #if(CLA_DEBUG == 1)
+        __mdebugstop();
+    #endif
+        //CLC_HAL_setProfilingGPIO2();  // gpio2 is OK
+    #if CLC_ISR2_RUNNING_ON == CLA_CORE
+            CLC_runISR2_primToSecPowerFlow();
+    #endif
+        //CLC_HAL_resetProfilingGPIO2();
+    #if(CLA_DEBUG == 1)
+        __mdebugstop();
+    #endif
+}
+#endif
+//
+// End of File
+//

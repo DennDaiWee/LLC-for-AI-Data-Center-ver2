@@ -153,21 +153,6 @@ extern "C" {
 #define CLC_SEC_PWM_DEADBAND_RED_NS         ((float32_t)150)
 #define CLC_SEC_PWM_DEADBAND_FED_NS         ((float32_t)300)
 
-#define CLC_VPRIM_MAX_SENSE_VOLTS           ((float32_t)960.2)
-#define CLC_VSEC_MAX_SENSE_VOLTS            ((float32_t)883.53)
-#define CLC_IPRIM_MAX_SENSE_AMPS            ((float32_t)88)
-#define CLC_ISEC_MAX_SENSE_AMPS             ((float32_t)54.5)
-#define CLC_IPRIM_TANK_MAX_SENSE_AMPS       ((float32_t)100)
-#define CLC_ISEC_TANK_MAX_SENSE_AMPS        ((float32_t)49.5)
-
-#define CLC_VSEC_NOMINAL_VOLTS              ((float32_t)420)
-#define CLC_VPRIM_NOMINAL_VOLTS             ((float32_t)550)
-
-#define CLC_IPRIM_TRIP_LIMIT_AMPS           ((float32_t)50)
-#define CLC_ISEC_TRIP_LIMIT_AMPS            ((float32_t)21.9)
-#define CLC_IPRIM_TANK_TRIP_LIMIT_AMPS      ((float32_t)50)
-#define CLC_ISEC_TANK_TRIP_LIMIT_AMPS       ((float32_t)50)
-
 // Control Loop Design
 #define CLC_GV1_2P2Z_A1    (float32_t) -1.7284895037
 #define CLC_GV1_2P2Z_A2    (float32_t) 0.7284895037

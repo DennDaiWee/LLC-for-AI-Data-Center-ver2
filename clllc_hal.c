@@ -8,7 +8,7 @@
 // This variable is also copied to HRMSTEP
 // register by SFO(0) function.
 int16_t MEP_ScaleFactor;
-
+int16_t tripIndicator;
 volatile uint32_t ePWM[9] = {0, EPWM1_BASE, EPWM2_BASE, EPWM3_BASE, EPWM4_BASE, EPWM5_BASE, EPWM6_BASE, EPWM7_BASE, EPWM8_BASE};
 
 //  This routine sets up the basic device configuration such as initializing PLL
@@ -171,98 +171,7 @@ void CLC_HAL_setupIprimSenseSignalChain(void)
 }
 #endif
 
-void clc_HAL_setProtect()
-{
-    // Disable all the muxes first
-    XBAR_disableEPWMMux(XBAR_TRIP4, 0xFF);
-/*
-#if CLC_BOARD_PROTECTION_IPRIM == 1
 
-    CLC_HAL_setupCMPSS(CLC_IPRIM_CMPSS_BASE, CLC_IPRIM_TRIP_LIMIT_AMPS, CLC_IPRIM_MAX_SENSE_AMPS);
-
-    XBAR_setEPWMMuxConfig(XBAR_TRIP4, CLC_IPRIM_XBAR_MUX_VAL);
-    XBAR_enableEPWMMux(XBAR_TRIP4, CLC_IPRIM_XBAR_MUX);
-
-    XBAR_clearInputFlag(CLC_IPRIM_CMPSS_XBAR_FLAG1);
-    XBAR_clearInputFlag(CLC_IPRIM_CMPSS_XBAR_FLAG2);
-#else
-    #warning BOARD_PROTECTION_IPRIM is disabled
-#endif
-*/
-#if CLC_BOARD_PROTECTION_IPRIM_TANK == 1
-
-    clc_Hal_setIPRMtankCmpss_HighLowLim(CLC_IPRIM_SHUNT_CMPSS_BASE, CLC_IPRIM_TANK_TRIP_LIMIT_AMPS, CLC_IPRIM_TANK_MAX_SENSE_AMPS,
-                                        CLC_CMPSS_HYSTERESIS, CLC_CMPSSS_FILTER_PRESCALAR, CLC_CMPSS_WINODW, CLC_CMPSS_THRESHOLD);
-
-    XBAR_setEPWMMuxConfig(XBAR_TRIP4, CLC_IPRIM_SHUNT_CMPSS_XBAR_MUX_VAL);
-    XBAR_enableEPWMMux(XBAR_TRIP4, CLC_IPRIM_SHUNT_CMPSS_XBAR_MUX);
-    XBAR_clearInputFlag(CLC_IPRIM_SHUNT_CMPSS_XBAR_FLAG1);
-    XBAR_clearInputFlag(CLC_IPRIM_SHUNT_CMPSS_XBAR_FLAG2);
-#else
-    #warning BOARD_PROTECTION_IPRIM_TANK is disabled
-#endif
-
-#if CLC_BOARD_PROTECTION_IPRIM_TANK == 1 || CLC_BOARD_PROTECTION_VSEC == 1 || CLC_BOARD_PROTECTION_ISEC == 1 || CLC_BOARD_PROTECTION_VPRIM == 1
-
-    //Trip 4 is the input to the DCAHCOMPSEL
-    EPWM_selectDigitalCompareTripInput(CLC_PRIM_LEG1_PWM_BASE, EPWM_DC_TRIP_TRIPIN4, EPWM_DC_TYPE_DCAH);
-    EPWM_setTripZoneDigitalCompareEventCondition(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_DC_OUTPUT_A1, EPWM_TZ_EVENT_DCXH_HIGH);
-    EPWM_setDigitalCompareEventSource(CLC_PRIM_LEG1_PWM_BASE, EPWM_DC_MODULE_A, EPWM_DC_EVENT_1, EPWM_DC_EVENT_SOURCE_ORIG_SIGNAL);
-    EPWM_setDigitalCompareEventSyncMode(CLC_PRIM_LEG1_PWM_BASE, EPWM_DC_MODULE_A, EPWM_DC_EVENT_1, EPWM_DC_EVENT_INPUT_NOT_SYNCED);
-
-    EPWM_selectDigitalCompareTripInput(CLC_SEC_LEG1_PWM_BASE, EPWM_DC_TRIP_TRIPIN4, EPWM_DC_TYPE_DCAH);
-    EPWM_setTripZoneDigitalCompareEventCondition(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_DC_OUTPUT_A1, EPWM_TZ_EVENT_DCXH_HIGH);
-    EPWM_setDigitalCompareEventSource(CLC_SEC_LEG1_PWM_BASE, EPWM_DC_MODULE_A, EPWM_DC_EVENT_1, EPWM_DC_EVENT_SOURCE_ORIG_SIGNAL);
-    EPWM_setDigitalCompareEventSyncMode(CLC_SEC_LEG1_PWM_BASE, EPWM_DC_MODULE_A , EPWM_DC_EVENT_1, EPWM_DC_EVENT_INPUT_NOT_SYNCED);
-
-    // Enable the following trips Emulator Stop, TZ1-3 and DCAEVT1
-    EPWM_enableTripZoneSignals(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_DCAEVT1);
-    EPWM_enableTripZoneSignals(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_DCAEVT1);
-
-    // Enable the following trips Emulator Stop
-    //
-    EPWM_enableTripZoneSignals(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_CBC6);
-    EPWM_enableTripZoneSignals(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_CBC6);
-
-    EPWM_enableTripZoneSignals(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_OSHT1);
-    EPWM_enableTripZoneSignals(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_SIGNAL_OSHT1);
-
-#else
-    #warning All current comparator based protections are disabled
-#endif
-
-    // TZA events can force EPWMxA
-    // TZB events can force EPWMxB
-    EPWM_setTripZoneAction(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_ACTION_EVENT_TZA, EPWM_TZ_ACTION_LOW);
-    EPWM_setTripZoneAction(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_ACTION_EVENT_TZB, EPWM_TZ_ACTION_LOW);
-    EPWM_setTripZoneAction(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_ACTION_EVENT_TZA, EPWM_TZ_ACTION_LOW);
-    EPWM_setTripZoneAction(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_ACTION_EVENT_TZB, EPWM_TZ_ACTION_LOW);
-
-    EPWM_clearCycleByCycleTripZoneFlag(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_CBC_FLAG_6);
-    EPWM_clearCycleByCycleTripZoneFlag(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_CBC_FLAG_6);
-
-    // Clear any spurious trip
-    EPWM_clearTripZoneFlag(CLC_PRIM_LEG1_PWM_BASE, (EPWM_TZ_INTERRUPT_OST | EPWM_TZ_INTERRUPT_DCAEVT1));
-    EPWM_clearTripZoneFlag(CLC_SEC_LEG1_PWM_BASE, (EPWM_TZ_INTERRUPT_OST | EPWM_TZ_INTERRUPT_DCAEVT1));
-
-    EPWM_forceTripZoneEvent(CLC_PRIM_LEG1_PWM_BASE, EPWM_TZ_FORCE_EVENT_OST);
-    EPWM_forceTripZoneEvent(CLC_SEC_LEG1_PWM_BASE, EPWM_TZ_FORCE_EVENT_OST);
-}
-
-void clc_HAL_setBdVoutProtect(void)
-{
-#if CLC_BOARD_PROTECTION_VSEC
-
-    GPIO_setDirectionMode(56, GPIO_DIR_MODE_IN);
-    GPIO_setQualificationMode(56, GPIO_QUAL_SYNC);
-    GPIO_setPinConfig(GPIO_56_GPIO56);
-    // Configure Input-XBAR INPUT1 to GPIO12
-    XBAR_setInputPin(XBAR_INPUT1, 56);
-
-#else
-
-#endif
-}
 
 void clc_HAL_setTrigForADC(void)
 {
@@ -542,11 +451,8 @@ void clc_Hal_setPWM(void)
     //setup the prim PWM
     clc_Hal_setHRpwmUpDownCountModeWithDeadBand(CLC_PRIM_LEG1_PWM_BASE, CLC_NOMINAL_PWM_SWITCH_FREQ_HZ, CLC_PWMSYSCLOCK_FREQ_HZ,
                                                 CLC_PRIM_PWM_DEADBAND_RED_NS, CLC_PRIM_PWM_DEADBAND_FED_NS);
-
     CLC_HAL_setupHRPWMinUpDownCount2ChAsymmetricMode(CLC_SEC_LEG1_PWM_BASE, CLC_NOMINAL_PWM_SWITCH_FREQ_HZ, CLC_PWMSYSCLOCK_FREQ_HZ);
-
     EPWM_disablePhaseShiftLoad(CLC_PRIM_LEG1_PWM_BASE);
-
     EPWM_setSyncOutPulseMode(CLC_PRIM_LEG1_PWM_BASE,EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO);
 
     EPWM_enablePhaseShiftLoad(CLC_SEC_LEG1_PWM_BASE);
@@ -556,6 +462,8 @@ void clc_Hal_setPWM(void)
     EPWM_setCountModeAfterSync(CLC_SEC_LEG1_PWM_BASE, EPWM_COUNT_MODE_UP_AFTER_SYNC);
     // After trig Syn output pulse, the count mode is up by default EPWM3 syncout is passed to EPWM4
 
+    clc_Hal_setPWMinUpDownCountMode(CLC_FAN_PWM_BASE, float32_t pwmFreq_Hz, float32_t CLC_PWMSYSCLOCK_FREQ_HZ)
+
     //Enable swap deadband
 
     HWREGH(CLC_SEC_LEG1_PWM_BASE + EPWM_O_DBCTL) = (HWREGH(CLC_SEC_LEG1_PWM_BASE + EPWM_O_DBCTL) | 0x3000);
@@ -564,6 +472,11 @@ void clc_Hal_setPWM(void)
     EPWM_setupEPWMLinks(CLC_SEC_LEG1_PWM_BASE, EPWM_LINK_WITH_EPWM_1, EPWM_LINK_TBPRD);
 
     EPWM_setGlobalLoadOneShotLatch(CLC_PRIM_LEG1_PWM_BASE);
+}
+
+void FAN_speed_OpenCtrl(float32_t FAN_frequency_HZ)
+{
+    EPWM_setTimeBasePeriod(CLC_FAN_PWM_BASE, (CLC_PWMSYSCLOCK_FREQ_HZ/FAN_frequency_HZ)>>1);
 }
 
 void clc_Hal_setCMPSSHighLowLimit(uint32_t base1, float32_t currentLimit, float32_t currentMaxSense, uint16_t hysteresis,
@@ -982,12 +895,12 @@ void CLC_setSynIn(void)
     GPIO_setPinConfig(GPIO_40_GPIO40);
     //
     // Configure Input-XBAR INPUT5 to GPIO40
-    XBAR_setInputPin(XBAR_INPUT1, 10);  // trouble in SR_use_Absolute_curr == 0
-    XBAR_setInputPin(XBAR_INPUT2, 10);  // trouble in SR_use_Absolute_curr == 0
-    XBAR_setInputPin(XBAR_INPUT3, 10);  // trouble in SR_use_Absolute_curr == 0
-    XBAR_setInputPin(XBAR_INPUT4, 10);  // trouble in SR_use_Absolute_curr == 0
-    XBAR_setInputPin(XBAR_INPUT5, 10);  // trouble in SR_use_Absolute_curr == 0
-    XBAR_setInputPin(XBAR_INPUT6, 10);  // trouble in SR_use_Absolute_curr == 0
+//    XBAR_setInputPin(XBAR_INPUT1, 40);  // trouble in SR_use_Absolute_curr == 0
+//    XBAR_setInputPin(XBAR_INPUT2, 40);  // trouble in SR_use_Absolute_curr == 0
+//    XBAR_setInputPin(XBAR_INPUT3, 40);  // trouble in SR_use_Absolute_curr == 0
+    XBAR_setInputPin(XBAR_INPUT4, 40);  // trouble in SR_use_Absolute_curr == 0
+//    XBAR_setInputPin(XBAR_INPUT5, 40);  // trouble in SR_use_Absolute_curr == 0
+//    XBAR_setInputPin(XBAR_INPUT6, 40);  // trouble in SR_use_Absolute_curr == 0
 
     EDIS;
 
@@ -1013,6 +926,7 @@ void CLC_HAL_setupCMPSS(uint32_t base1, float32_t current_limit, float32_t curre
 
     // Comparator output is inverted for for low compare event
     CMPSS_configLowComparator(base1, CMPSS_INSRC_DAC | CMPSS_INV_INVERTED);
+//    CMPSS_configLowComparator(base1, CMPSS_INSRC_DAC);
 
     CMPSS_configFilterHigh(base1, 2, 30, 20); //10 to 30; 7 to 20
     CMPSS_configFilterLow(base1, 2, 30, 20);

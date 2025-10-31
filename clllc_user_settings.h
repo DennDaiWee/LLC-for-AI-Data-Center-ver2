@@ -127,7 +127,7 @@
 #define CLC_BOARD_PROTECTION_IPRIM_TANK 0
 #define CLC_BOARD_PROTECTION_ISEC 0 //1
 #define CLC_BOARD_PROTECTION_VPRIM 0
-#define CLC_BOARD_PROTECTION_VSEC 0//1
+#define CLC_BOARD_PROTECTION_VSEC 1//1
 #define CLC_BOARD_PROTECTION_NTC 0
 #define CLC_BOARD_PROTECTION_FANSPD 0
 #else
@@ -138,11 +138,10 @@
 #define CLC_BOARD_PROTECTION_VSEC 0
 #endif
 
-#define CLC_IPRIM_CMPSS_BASE        CMPSS6_BASE
-#define CLC_IPRIM_XBAR_MUX          XBAR_MUX10
-#define CLC_IPRIM_XBAR_MUX_VAL      XBAR_EPWM_MUX10_CMPSS6_CTRIPH_OR_L
-#define CLC_IPRIM_CMPSS_XBAR_FLAG1  XBAR_INPUT_FLG_CMPSS6_CTRIPL
-#define CLC_IPRIM_CMPSS_XBAR_FLAG2      XBAR_INPUT_FLG_CMPSS6_CTRIPH
+#define CLC_IPRIM_TANK_CMPSS_XBAR_MUX          XBAR_MUX02
+#define CLC_IPRIM_TANK_CMPSS_XBAR_MUX_VAL      XBAR_EPWM_MUX02_CMPSS2_CTRIPH_OR_L
+#define CLC_IPRIM_TANK_CMPSS_XBAR_FLAG1  XBAR_INPUT_FLG_CMPSS2_CTRIPL
+#define CLC_IPRIM_TANK_CMPSS_XBAR_FLAG2      XBAR_INPUT_FLG_CMPSS2_CTRIPH
 /*
 #define CLC_IPRIM_CMPSS_BASE CMPSS1_BASE
 #define CLC_IPRIM_CMPSS_ASYSCTRL_CMPHPMUX  ASYSCTL_CMPHPMUX_SELECT_1  // CMPIN1P : ADCINA2
@@ -162,7 +161,7 @@
 #define CLC_VPRIM_CMPSS_ASYSCTRL_MUX_VALUE 1 // ref Technical reference manual : Table 9-2. Analog Pins and Internal Connections
 
 #define CLC_VPRIM_CMPSS_XBAR_MUX XBAR_MUX00
-#define CLC_VPRIM_CMPSS_XBAR_MUX_VAL XBAR_EPWM_MUX00_CMPSS1_CTRIPH_OR_L
+#define CLC_VPRIM_CMPSS_XBAR_MUX_VAL XBAR_EPWM_MUX00_CMPSS1_CTRIPH
 #define CLC_VPRIM_CMPSS_XBAR_FLAG1 XBAR_INPUT_FLG_CMPSS1_CTRIPH
 #define CLC_VPRIM_CMPSS_XBAR_FLAG2 XBAR_INPUT_FLG_CMPSS1_CTRIPL
 //
@@ -339,7 +338,7 @@
 #define CLC_CLEAR_TASKB_TIMER_OVERFLOW_FLAG CPUTimer_clearOverflowFlag(CLC_TASKB_CPUTIMER_BASE)
 /****************************************************************/
 // Vin OV LV Protect
-#define VinLVProt 1
+#define VinLVProt 0
 #define CLC_Vin_LIMIT_volt 920
 #define CLC_Vin_LowLIMIT_volt 500
 #define SR_use_Absolute_curr 0
@@ -458,7 +457,7 @@ static inline float CLLC_GV_antiWinup_PI(CLLC_PI* CLLC_Antiwinup_PI, float error
       if (CLLC_Antiwinup_PI->blPWMEnb == 1U)
       {
 
-        CLLC_Antiwinup_PI->Integrator = CLLC_Antiwinup_PI->Integrator_DSTATE ;
+        CLLC_Antiwinup_PI->Integrator = CLLC_Antiwinup_PI->Integrator_DSTATE;
 
         rtb_Sum3 = error * CLLC_Antiwinup_PI->KpZ + CLLC_Antiwinup_PI->Integrator;
 

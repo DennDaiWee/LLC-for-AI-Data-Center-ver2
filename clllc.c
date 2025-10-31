@@ -21,6 +21,7 @@
 
 #include "clllc.h"
 
+
 //
 //--- System Related Globals ---
 // Put the variables that are specific to control in the below section
@@ -79,29 +80,18 @@ float32_t CLC_pwmPeriodMax_pu;
 float32_t CLC_pwmPeriodMax_ticks;
 uint32_t CLC_pwmPeriod_ticks;
 
-//
 // 1- Primary Side (PFC-Inv/Bus)
-//
-float32_t CLC_iPrimSense_Amp;
-float32_t CLC_iPrimSense_pu;
-float32_t CLC_iPrimSenseOff_pu;
-EMAVG CLC_iPrimSenseAvg_pu;
+uint16_t iPrimTank_ADCvalue, vPrim_ADCvalue, iSec_ADCvalue, vSec_ADCvalue;
 
-float32_t CLC_iPrimTankSense_Amp;
-float32_t CLC_iPrimTankSense_pu;
-float32_t CLC_iPrimTankSenseOff_pu;
-float32_t CLC_iPrimTankSenseCalOff_pu;
-float32_t CLC_iPrimTankSenseCalScale_pu;
+float32_t CLC_iPrimTankSense_Amp, CLC_iPrimTankSense_pu, CLC_iPrimTankSenseOff_pu;
+float32_t CLC_iPrimTankSenseCalOff_pu, CLC_iPrimTankSenseCalScale_pu;
 EMAVG CLC_iPrimTankSenseAvg_pu;
 
-float32_t CLC_vPrimSense_volt;
-float32_t CLC_vPrimSense_pu, CLC_vPrimSense_pu_ACC, CLC_vPrimSense_pu_flr;;
+float32_t CLC_vPrimSense_volt, CLC_vPrimSense_pu, CLC_vPrimSense_pu_ACC, CLC_vPrimSense_pu_flr;
 float32_t CLC_vPrimSenseOff_pu;
 EMAVG CLC_vPrimSenseAvg_pu;
 
-float32_t CLC_vPrimRef_volt;
-float32_t CLC_vPrimRef_pu;
-float32_t CLC_vPrimRefSlewed_pu;
+float32_t CLC_vPrimRef_volt, CLC_vPrimRef_pu, CLC_vPrimRefSlewed_pu;
 
 volatile float32_t CLC_pwmDutyPrimRef_pu;
 float32_t CLC_pwmDutyPrim_pu;
@@ -114,20 +104,15 @@ uint32_t CLC_pwmDeadBandREDPrim_ticks;
 volatile float32_t CLC_pwmDeadBandFEDPrimRef_ns;
 uint32_t CLC_pwmDeadBandFEDPrim_ticks;
 
-//
 // 2-Secondary side (Battery)
-//
-float32_t CLC_iSecSense_Amp;
-float32_t CLC_iSecSense_pu, CLC_iSecSense_pu_ACC, CLC_iSecSense_pu_flr;
+float32_t CLC_iSecSense_Amp, CLC_iSecSense_pu, CLC_iSecSense_pu_ACC, CLC_iSecSense_pu_flr;
 float32_t CLC_iSecSenseOff_pu;
 EMAVG CLC_iSecSenseAvg_pu;
 
 volatile float32_t CLC_iSecRef_Amp;
-float32_t CLC_iSecRef_pu;
-float32_t CLC_iSecRefSlewed_pu;
+float32_t CLC_iSecRef_pu, CLC_iSecRefSlewed_pu;
 
-float32_t CLC_vSecSense_volt;
-float32_t CLC_vSecSenseCtrl_volt;
+float32_t CLC_vSecSense_volt, CLC_vSecSenseCtrl_volt;
 float32_t CLC_vSecSense_pu, CLC_vSecSense_pu_ACC, CLC_vSecSense_pu_flr, CLC_vSecSense_FB_Sim = 0;
 float32_t CLC_vSecSenseCtrl_pu;
 float32_t CLC_vSecSenseOff_pu;
@@ -137,17 +122,17 @@ float32_t CLC_vSecRef_pu;
 float32_t CLC_vSecRefSlewed_pu;
 EMAVG CLC_vSecSenseAvg_pu;
 
-// Temperature BUS port
-float32_t CLC_THBUS_pu;
-float32_t CLC_THbusSense_Deg;
-float32_t CLC_THbusSenseOff_pu;
-EMAVG CLC_THbusAvg_pu;
+// Temperature BusTemp port
+float32_t CLC_BusTemp_Sense_pu;
+uint16_t CLC_BusTemp_Sense_Deg;
+float32_t CLC_BusTemp_SenseOff_pu;
+EMAVG CLC_BusTemp_Avg_pu;
 
 // Temperature HV port
-float32_t CLC_THhv_pu;
-float32_t CLC_TH_hvSense_Deg;
-float32_t CLC_THhvSenseOff_pu;
-EMAVG CLC_THhvAvg_pu;
+//float32_t CLC_THhv_pu;
+//float32_t CLC_TH_hvSense_Deg;
+//float32_t CLC_THhvSenseOff_pu;
+//EMAVG CLC_THhvAvg_pu;
 
 volatile float32_t CLC_pwmDutySecRef_pu;
 float32_t CLC_pwmDutySec_pu;
@@ -178,21 +163,12 @@ volatile uint32_t CLC_cla_task_counter;
 //#pragma DATA_SECTION(CLC_vSecSense_pu,"Cla1ToCpuMsgRAM");
 //#pragma DATA_SECTION(CLC_vPrimSense_pu,"Cla1ToCpuMsgRAM");
 
-//
 // datalogger
-//
 DLOG_4CH CLC_dLog1;
-float32_t CLC_dBuff1[100];
-float32_t CLC_dBuff2[100];
-float32_t CLC_dBuff3[100];
-float32_t CLC_dBuff4[100];
-float32_t CLC_dVal1;
-float32_t CLC_dVal2;
-float32_t CLC_dVal3;
-float32_t CLC_dVal4;
+float32_t CLC_dBuff1[100], CLC_dBuff2[100], CLC_dBuff3[100], CLC_dBuff4[100];
+float32_t CLC_dVal1, CLC_dVal2, CLC_dVal3, CLC_dVal4;
 volatile float32_t CLC_dlogTrigger;
 
-//
 //--- SFRA Related Variables ---
 SFRA_F32 CLC_sfra1;
 
@@ -264,19 +240,18 @@ void CLC_runISR3(void)
     static uint16_t uwOn_times = 0, uwOFF_times = 0;
 
     CLC_vPrimSense_volt = CLC_vPrimSense_pu * CLC_VPRIM_MAX_SENSE_VOLTS;
+    CLC_vSecSense_volt = CLC_vSecSense_pu * CLC_VSEC_MAX_SENSE_VOLTS;    // CLC_vSecSense_pu
+    CLC_iPrimTankSense_Amp = CLC_iPrimTankSense_pu * CLC_IPRIM_TANK_MAX_SENSE_AMPS;
+    CLC_iSecSense_Amp = CLC_iSecSense_pu * CLC_ISEC_MAX_SENSE_AMPS;
+    CLC_BusTemp_Sense_Deg = Temp_cal(CLC_BusTemp_Sense_pu);
     //flOslVoltInFbk = CLC_vPrimSense_volt;
-    CLC_vSecSense_volt = CLC_vSecSense_pu_flr * CLC_VSEC_MAX_SENSE_VOLTS;    // CLC_vSecSense_pu
-
     uwObcVoltOutSend = (CLC_vSecSense_volt);
 
-    CLC_iPrimSense_Amp = CLC_iPrimSense_pu * CLC_IPRIM_MAX_SENSE_AMPS;
-
-    CLC_iSecSense_Amp = CLC_iSecSense_pu_flr * CLC_ISEC_MAX_SENSE_AMPS;
-
-       switch(DcChargUnitSt){
+   switch(DcChargUnitSt)
+   {
        case UnitInit:
 
-           CLC_vSecRef_volt = (CLC_vPrimSense_volt*1.0745341F -25)*0.8F;
+           CLC_vSecRef_volt = (CLC_vPrimSense_volt * 1.0745341F - 25) * 0.8F;
 
            fl_PSM_shift_Angle = fl_PSM_shift_Angle_Zero;
            fl_PSM_shift_SlewedAngle = fl_PSM_shift_Angle_Zero;
@@ -306,31 +281,28 @@ void CLC_runISR3(void)
            //CLC_MAX_PhaseAng_STEP_DegInt = CLC_MAX_PhaseAng_STEP_Deg;
            CLC_MAX_PhaseAng_STEP_DegInt = 0.8;
 
-           if((DcChargSt_On == On)){
-               if(uwOn_times==0U) {
+           if(DcChargSt_On == On)
+           {
+               if(uwOn_times==0U)
                    CLC_clearTrip = 1U;
-               }
-
                uwOn_times++;
 
-               if(uwOn_times>3U){
+               if(uwOn_times > 3U)
+               {
                    fl_PSM_shift_Angle = PSM_MAX_angle;
                    fl_PSM_shift_SlewedAngle = PSM_MAX_angle;
                    //PriPwmEnb_Act = 1U;
                    DcChargUnitSt = SoftStart;
                    uwOn_times = 0U;
                }
-           }else{
-               DcChargUnitSt = UnitInit;
            }
+           else
+               DcChargUnitSt = UnitInit;
            break;
 
        case SoftStart: /*Real Soft start CLLC, Minimum out Volt */
-
            PWMSta.PriPwmEnb_Act = 1U;
            PWMSta.SecPwmEnb_Act = 1U;
-
-
            //re //flOslPFMfreqCmd = CLC_MAX_PWM_SWITCH_FREQ_HZ;
 
            /* Act Func */
@@ -344,106 +316,103 @@ void CLC_runISR3(void)
            //fl_PSM_shift_SlewedAngle = PSM_MAX_angle;
 
            uwreadTripFlags = CLC_HAL_readTripFlags();
-          //re //if((CLC_vSecSense_volt > CLC_vPrimSense_volt * 0.5F) && (uwreadTripFlags == 0U) && (CLC_vSecSense_volt>120.0F)){
-               CLC_closeGvLoop = 1;
-               CLC_closeGiLoop = 0;
+           //re //if((CLC_vSecSense_volt > CLC_vPrimSense_volt * 0.5F) && (uwreadTripFlags == 0U) && (CLC_vSecSense_volt>120.0F)){
+           CLC_closeGvLoop = 1;
+           CLC_closeGiLoop = 0;
 
-               uwPSM_enable = 0;
+           uwPSM_enable = 0;
 
-               CLC_vSecRef_volt = flOslVoltOutGUICmd;
-               CLC_vSecRef_pu = CLC_vSecRef_volt * Inv_CLC_VSEC_MAX_SENSE_VOLTS;
-               CLC_vSecRefSlewed_pu = (CLC_vSecRef_volt + CLC_vSecSense_volt)*0.5F* Inv_CLC_VSEC_MAX_SENSE_VOLTS;
-               fl_PSM_shift_Angle = 0;
+           CLC_vSecRef_volt = flOslVoltOutGUICmd;
+           CLC_vSecRef_pu = CLC_vSecRef_volt * Inv_CLC_VSEC_MAX_SENSE_VOLTS;
+           CLC_vSecRefSlewed_pu = (CLC_vSecRef_volt + CLC_vSecSense_volt)*0.5F* Inv_CLC_VSEC_MAX_SENSE_VOLTS;
+           fl_PSM_shift_Angle = 0;
 
-               if(fl_PSM_shift_SlewedAngle < (PSM_MIN_angle + 0.01f))
+           if(fl_PSM_shift_SlewedAngle < (PSM_MIN_angle+0.01f))
+           {
+               PSM_Gv_Antiwinup_PI.blPWMEnb = 0U;
+               CLLC_Gv_Antiwinup_PI.blPWMEnb = 1U;
+               PSM_Gv_Antiwinup_PI.KiZ = 800.0F;
+               CLLC_Gv_Antiwinup_PI.KiZ = 3500000.0F;
+               CLLC_Gv_Antiwinup_PI.Saturation_LowerSat = CLC_MIN_PWM_SWITCH_FREQ_HZ;
+
+               switch (DcChargUnitSt_Cmd)
                {
-                   PSM_Gv_Antiwinup_PI.blPWMEnb = 0U;
-                   CLLC_Gv_Antiwinup_PI.blPWMEnb = 1U;
-                   PSM_Gv_Antiwinup_PI.KiZ = 800.0F;
-                   CLLC_Gv_Antiwinup_PI.KiZ = 3500000.0F;
-                   CLLC_Gv_Antiwinup_PI.Saturation_LowerSat = CLC_MIN_PWM_SWITCH_FREQ_HZ;
-
-                   switch (DcChargUnitSt_Cmd){
-                   case Const_Volt_Ctrl : DcChargUnitSt = Const_Volt_Ctrl;
-                              break;
-                   case Const_Curr_Ctrl : DcChargUnitSt = Const_Volt_Ctrl;
-                              break;
+                   case Const_Volt_Ctrl:
+                       DcChargUnitSt = Const_Volt_Ctrl;
+                       break;
+                   case Const_Curr_Ctrl:
+                       DcChargUnitSt = Const_Volt_Ctrl;
+                       break;
                    default : DcChargUnitSt = Const_Volt_Ctrl;
-                              break;
-                   }
-
-               }else{
-                   DcChargUnitSt = SoftStart;
+                       break;
                }
 
+           }
+           else
+               DcChargUnitSt = SoftStart;
            //}
-
-
            break;
 
        case Const_Volt_Ctrl: /*Include volt Ctrl ref soft start */
+           CLC_vSecRef_volt = flOslVoltOutGUICmd;
 
+           CLC_Ctrl(); // Control volt Loop
 
-               CLC_vSecRef_volt = flOslVoltOutGUICmd;
+           if((DcChargSt_On == OFF))
+           {
+               CLC_StopPWM();
+               PWMSta.PriPwmEnb_Act = 0U;
+               PWMSta.SecPwmEnb_Act = 1U;
+               uwOFF_times++;
 
-               CLC_Ctrl(); // Control volt Loop
-
-               if((DcChargSt_On == OFF)){
-                   CLC_StopPWM();
-                   PWMSta.PriPwmEnb_Act = 0U;
-                   PWMSta.SecPwmEnb_Act = 1U;
-                   uwOFF_times++;
-
-
-                   if(uwOFF_times>20U){
-                       DcChargUnitSt = UnitInit;
-
-                       uwOFF_times = 0U;
-                   }else{
-                       DcChargUnitSt = Const_Volt_Ctrl;
-                   }
-
-               }else{
-                   DcChargUnitSt = Const_Volt_Ctrl;
+               if(uwOFF_times > 20U)
+               {
+                   DcChargUnitSt = UnitInit;
+                   uwOFF_times = 0U;
                }
-               break;
+               else
+                   DcChargUnitSt = Const_Volt_Ctrl;
+           }
+           else
+               DcChargUnitSt = Const_Volt_Ctrl;
+           break;
 
        case Const_Curr_Ctrl:
            break;
-       case OpenloopPFM_PSM: /*Independant Mode */
+       case OpenloopPFM_PSM: /*Independent Mode */
            break;
 
        default:
            DcChargUnitSt = UnitInit;
-       }
-
-        CLC_HAL_clearISR3PeripheralInterruptFlag();
    }
+
+   CLC_HAL_clearISR3PeripheralInterruptFlag();
+}
 
 void clc_initGlobalVar(void)
 {
 
     DCL_resetDF13(&CLC_gi);
 
-        CLC_gi.a1 = CLC_GI1_2P2Z_A1;
-        CLC_gi.a2 = CLC_GI1_2P2Z_A2;
-        CLC_gi.a3 = CLC_GI1_2P2Z_A3;
-        CLC_gi.b0 = CLC_GI1_2P2Z_B0;
-        CLC_gi.b1 = CLC_GI1_2P2Z_B1;
-        CLC_gi.b2 = CLC_GI1_2P2Z_B2;
-        CLC_gi.b3 = CLC_GI1_2P2Z_B3;
+    CLC_gi.a1 = CLC_GI1_2P2Z_A1;
+    CLC_gi.a2 = CLC_GI1_2P2Z_A2;
+    CLC_gi.a3 = CLC_GI1_2P2Z_A3;
+    CLC_gi.b0 = CLC_GI1_2P2Z_B0;
+    CLC_gi.b1 = CLC_GI1_2P2Z_B1;
+    CLC_gi.b2 = CLC_GI1_2P2Z_B2;
+    CLC_gi.b3 = CLC_GI1_2P2Z_B3;
 
 
     DCL_resetDF13(&CLC_gv);
-        CLC_gv.a1 = CLC_GV1_2P2Z_A1;
-        CLC_gv.a2 = CLC_GV1_2P2Z_A2;
-        CLC_gv.a3 = CLC_GV1_2P2Z_A3;
-        CLC_gv.b0 = CLC_GV1_2P2Z_B0;
-        CLC_gv.b1 = CLC_GV1_2P2Z_B1;
-        CLC_gv.b2 = CLC_GV1_2P2Z_B2;
-        CLC_gv.b3 = CLC_GV1_2P2Z_B3;
+    CLC_gv.a1 = CLC_GV1_2P2Z_A1;
+    CLC_gv.a2 = CLC_GV1_2P2Z_A2;
+    CLC_gv.a3 = CLC_GV1_2P2Z_A3;
+    CLC_gv.b0 = CLC_GV1_2P2Z_B0;
+    CLC_gv.b1 = CLC_GV1_2P2Z_B1;
+    CLC_gv.b2 = CLC_GV1_2P2Z_B2;
+    CLC_gv.b3 = CLC_GV1_2P2Z_B3;
 
-    CLC_iPrimSense_Amp = 0;
+    CLC_iPrimTankSense_Amp = 0;
     CLC_vPrimSense_volt = 0;
     CLC_iSecSense_Amp = 0;
     CLC_vSecSense_volt = 0;
@@ -484,12 +453,12 @@ void clc_initGlobalVar(void)
     CLC_iSecSenseOff_pu = 0.5;
     CLC_vSecSense_pu = 0;
     CLC_vSecSenseOff_pu = 0;
-    CLC_iPrimSense_pu = 0;
     CLC_iPrimTankSense_pu = 0;
-    CLC_iPrimSenseOff_pu = 0.5;
+    CLC_iPrimTankSense_pu = 0;
     CLC_iPrimTankSenseOff_pu = 0.5;
-    CLC_THhvSenseOff_pu = 0;
-    CLC_THbusSenseOff_pu = 0;
+    CLC_iPrimTankSenseOff_pu = 0.5;
+//    CLC_THhvSenseOff_pu = 0;
+    CLC_BusTemp_SenseOff_pu = 0;
 
     CLC_iPrimTankSenseCalOff_pu = 0;
     CLC_iPrimTankSenseCalScale_pu = 1;
@@ -633,14 +602,14 @@ void clc_initGlobalVar(void)
     AVG_config(&CLC_vSecSenseAvg_pu, 0.5);
     AVG_reset(&CLC_iSecSenseAvg_pu);
     AVG_config(&CLC_iSecSenseAvg_pu, 0.01);  // org is 0.01
-    AVG_reset(&CLC_iPrimSenseAvg_pu);
-    AVG_config(&CLC_iPrimSenseAvg_pu, 0.0025);
+    AVG_reset(&CLC_iPrimTankSenseAvg_pu);
+    AVG_config(&CLC_iPrimTankSenseAvg_pu, 0.0025);
     AVG_reset(&CLC_iPrimTankSenseAvg_pu);
     AVG_config(&CLC_iPrimTankSenseAvg_pu, 0.5);
-    AVG_reset(&CLC_THbusAvg_pu);
-    AVG_config(&CLC_THbusAvg_pu, 0.01);
-    AVG_reset(&CLC_THhvAvg_pu);
-    AVG_config(&CLC_THhvAvg_pu, 0.01);
+    AVG_reset(&CLC_BusTemp_Avg_pu);
+    AVG_config(&CLC_BusTemp_Avg_pu, 0.01);
+//    AVG_reset(&CLC_THhvAvg_pu);
+//    AVG_config(&CLC_THhvAvg_pu, 0.01);
 
     OBC_Status.ObcTemp = (100 + 48)/0.486;
 
@@ -693,16 +662,14 @@ void CLC_updateBoardStatus(void)
             case sec_OverCurr:
                 CLC_tripFlag.CLC_TripFlag_Em = sec_OverCurr;
                 break;
-            default :
+            default:
                 break;
         }
     }
     else
     {
         if (tripStatusRead == 0)
-        {
             CLC_tripFlag.CLC_TripFlag_Em = noTrip;
-        }
         else
         {
             switch (tripStatusRead)
@@ -719,20 +686,17 @@ void CLC_updateBoardStatus(void)
                 case sec_OverCurr:
                     CLC_tripFlag.CLC_TripFlag_Em = sec_OverCurr;
                     break;
-                default :
+                default:
                     break;
             }
         }
-
     }
 }
 
 void CLC_runSFRABackGroundTasks(void)
 {
-
     SFRA_F32_runBackgroundTask(&CLC_sfra1);
     SFRA_GUI_runSerialHostComms(&CLC_sfra1);
-
 }
 
 void clc_BuildLvl_IndicaVar(void)
@@ -793,7 +757,6 @@ void CLC_chageSynchrosRectifiPwmBehavr(uint16_t powerFlow)
 
         clc_Hal_setPWMpins(CLC_pwmSwStateAct.CLC_PwmSwState_Em);
     }
-
 }
 
 void CLC_Print(void)
@@ -802,79 +765,76 @@ void CLC_Print(void)
     static uint16_t TimeTag = 0;
     static uint16_t InxSciData[2] = {0,0};
 
-    if (blSourceEna == 0x1) {
-      rtb_Bias  = 11;
-      s25_iter = 1;
-      TimeTag++;
-      do {
-        switch (s25_iter) {
-         case 1:
-          InxSciData[0] = 0x0A;
-          InxSciData[1] = 0x0B;
-          break;
+    if (blSourceEna == 0x1)
+    {
+        rtb_Bias  = 11;
+        s25_iter = 1;
+        TimeTag++;
+        do {
+            switch (s25_iter)
+            {
+                case 1:
+                    InxSciData[0] = 0x0A;
+                    InxSciData[1] = 0x0B;
+                    break;
 
-         case 2:
-          InxSciData[0] = TimeTag & 0x00ff ;
-          InxSciData[1] = (TimeTag & 0xff00)>>8 ;
-          break;
+                case 2:
+                    InxSciData[0] = TimeTag & 0x00ff;
+                    InxSciData[1] = (TimeTag & 0xff00)>>8 ;
+                    break;
 
-         case 3:
-          InxSciData[0] = (int16_t)(CLC_iPrimSense_Amp*1000) & 0x00ff;
-          InxSciData[1] = (((int16_t)(CLC_iPrimSense_Amp*1000)) & 0xff00) >>8;
-          break;
+                case 3:
+                    InxSciData[0] = (int16_t)(CLC_iPrimTankSense_Amp*1000) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(CLC_iPrimTankSense_Amp*1000)) & 0xff00) >>8;
+                    break;
 
-         case 4:
-          InxSciData[0] = (int16_t)(CLC_iSecSense_Amp*1000) & 0x00ff;
-          InxSciData[1] = (((int16_t)(CLC_iSecSense_Amp*1000)) & 0xff00)>>8;
-          break;
+                case 4:
+                    InxSciData[0] = (int16_t)(CLC_iSecSense_Amp*1000) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(CLC_iSecSense_Amp*1000)) & 0xff00)>>8;
+                    break;
 
-         case 5:
-          InxSciData[0] = (int16_t)(CLC_vPrimSense_volt*10) & 0x00ff;
-          InxSciData[1] = (((int16_t)(CLC_vPrimSense_volt*10)) & 0xff00)>>8;
-          break;
+                case 5:
+                    InxSciData[0] = (int16_t)(CLC_vPrimSense_volt*10) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(CLC_vPrimSense_volt*10)) & 0xff00)>>8;
+                    break;
 
-         case 6:
-          InxSciData[0] = (int16_t)(CLC_vSecSense_volt*10) & 0x00ff;
-          InxSciData[1] = (((int16_t)(CLC_vSecSense_volt*10)) & 0xff00)>>8;
-          break;
+                case 6:
+                    InxSciData[0] = (int16_t)(CLC_vSecSense_volt*10) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(CLC_vSecSense_volt*10)) & 0xff00)>>8;
+                    break;
 
-         case 7:
-             InxSciData[0] = (int16_t)(flTHBUS_deg*10) & 0x00ff;
-             InxSciData[1] = (((int16_t)(flTHBUS_deg*10)) & 0xff00)>>8;
-          break;
+                case 7:
+                    InxSciData[0] = (int16_t)(flTHBUS_deg*10) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(flTHBUS_deg*10)) & 0xff00)>>8;
+                    break;
 
-         case 8:
-             InxSciData[0] = (int16_t)(flTHhv_deg*10) & 0x00ff;
-             InxSciData[1] = (((int16_t)(flTHhv_deg*10)) & 0xff00)>>8;
+                case 8:
+                    InxSciData[0] = (int16_t)(flTHhv_deg*10) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(flTHhv_deg*10)) & 0xff00)>>8;
+                    break;
 
-          break;
+                case 9:
+                    InxSciData[0] = (int16_t)(CLC_vSecSenseCtrl_volt*10) & 0x00ff;
+                    InxSciData[1] = (((int16_t)(CLC_vSecSenseCtrl_volt*10)) & 0xff00)>>8;
+                    //InxSciData[0] = 0;
+                    //InxSciData[1] = 0;
+                    break;
 
-         case 9:
-             InxSciData[0] = (int16_t)(CLC_vSecSenseCtrl_volt*10) & 0x00ff;
-             InxSciData[1] = (((int16_t)(CLC_vSecSenseCtrl_volt*10)) & 0xff00)>>8;
-             //InxSciData[0] = 0;
-             //InxSciData[1] = 0;
-          break;
+                case 10:
+                    InxSciData[0] = 0x1D;  // Check Code
+                    InxSciData[1] = 0x1C;  // Check Code
+                    break;
 
-         case 10:
-          InxSciData[0] = 0x1D;  // Check Code
-          InxSciData[1] = 0x1C;  // Check Code
-          break;
-
-         default:
-             InxSciData[0] = 0x1D;  // Temperature BUS
-             InxSciData[1] = 0x1C;  // Temperature BUS
-          break;
-        }
-
-        //scia_xmit((char*)&InxSciData, 2, 2);
-        SCI_writeCharArray(SCIA_BASE,InxSciData,2);
-
-        s25_iter++;
-      } while ((rtb_Bias - s25_iter) != 0U);
-
+                default:
+                    InxSciData[0] = 0x1D;  // Temperature BUS
+                    InxSciData[1] = 0x1C;  // Temperature BUS
+                    break;
+            }
+            //scia_xmit((char*)&InxSciData, 2, 2);
+            SCI_writeCharArray(SCIA_BASE,InxSciData,2);
+            s25_iter++;
+        } while ((rtb_Bias - s25_iter) != 0U);
     }
-
 }
 
 void CLLC_Calculate_Rdc(void){
@@ -885,33 +845,32 @@ void CLLC_lookuptable(void){
 
 void CLC_PSM_Ctrl_slow(void)
 {
-    static uint16_t uwEnterInPSMstateCnt = 0, uwEnterOutPSMstateCnt = 0;
+    static uint16_t uwEnterInPSMstateCnt=0, uwEnterOutPSMstateCnt=0;
 
         if(CLC_closeGvLoop == 1)
          {
-             PSM_gvError = ( CLC_vSecSense_pu - CLC_vSecRefSlewed_pu );
+             PSM_gvError = (CLC_vSecSense_pu - CLC_vSecRefSlewed_pu);
 
              if(uwPSM_Slave_enable == 1U)
              {
-                 PSM_gvOut = CLLC_GV_antiWinup_PI(&PSM_Gv_Antiwinup_PI, PSM_gvError );
-                 if(PSM_gvOut == PSM_MIN_angle){
+                 PSM_gvOut = CLLC_GV_antiWinup_PI(&PSM_Gv_Antiwinup_PI, PSM_gvError);
+                 if(PSM_gvOut == PSM_MIN_angle)
                      uwEnterOutPSMstateCnt++;
-                 }
-                 else{
+                 else
                      uwEnterOutPSMstateCnt = 0;
-                 }
 
-                 if(uwEnterOutPSMstateCnt > uwEnterOutPSMstateCntLvl){
+                 if(uwEnterOutPSMstateCnt > uwEnterOutPSMstateCntLvl)
+                 {
                      //uwPSM_Slave_enable = 0U;
                      uwEnterInPSMstateCnt = 0;
                      uwEnterOutPSMstateCnt = 0;
-                 }else{
+                 }
+                 else
+                 {
                      /* do nothing */
                  }
-
                  fl_PSM_shift_Angle = PSM_gvOut;
              }
-
          }
          else
          {
@@ -919,9 +878,3 @@ void CLC_PSM_Ctrl_slow(void)
              fl_PSM_shift_SlewedAngle = fl_PSM_shift_Angle_Init;
          }
 }
-
-//
-//===========================================================================
-// No more.
-//===========================================================================
-//

@@ -1,7 +1,3 @@
-//#############################################################################
-// TITLE:  CLLC is resonant DC DC converter
-//#############################################################################
-
 // 221004 Modify ADC allocation : add Ipri Isec Vpri Vsec VCtrl overSampling
 // 221116 Add Modbus 03 06 cmd.
 // 221122 Add Modbus Multi word
@@ -44,8 +40,8 @@ void Task_A1(void);  //state Task_A1
 // Note that the watchdog is disabled in codestartbranch.asm
 // for this project. This is to prevent it from expiring while
 // c_init routine initializes the global variables before reaching the main()
-//############   Herman Add : General Function  ########################################################
-void DAC_init(void);
+#include "Ai_CLLLC_DAC_settings.h"
+void DAC_init(uint32_t);
 void clc_ADC_Offset_Calc(void);
 void HAL_init();
 //**************************** DAC use variable ***************************
@@ -53,6 +49,8 @@ uint16_t DAC_switch = 0, DAC_Val = 2048;
 //***********************************************************************
 
 bool send_En = false;
+bool ISEC_FLAG1, ISEC_FLAG2;
+uint16_t PRIM_PWM_tzflags, SEC_PWM_tzflags, EPWM1_OST_STATUS, EPWM2_OST_STATUS;
 
 // ISR3 and ISR2*10time = ISR3, but maybe delay one cycle.
 void main(void)
@@ -62,51 +60,39 @@ void main(void)
 
     HAL_init();
 	EINT;
-
     while(1)
     {
+        ISEC_FLAG1 = XBAR_getInputFlagStatus(CLC_ISEC_CMPSS_XBAR_FLAG1);
+        ISEC_FLAG2 = XBAR_getInputFlagStatus(CLC_ISEC_CMPSS_XBAR_FLAG2);
+
+        EPWM1_OST_STATUS = EPWM_getOneShotTripZoneFlagStatus(CLC_PRIM_LEG1_PWM_BASE);
+        EPWM2_OST_STATUS = EPWM_getOneShotTripZoneFlagStatus(CLC_SEC_LEG1_PWM_BASE);
+
+        PRIM_PWM_tzflags = EPWM_getTripZoneFlagStatus(CLC_PRIM_LEG1_PWM_BASE);
+        SEC_PWM_tzflags = EPWM_getTripZoneFlagStatus(CLC_SEC_LEG1_PWM_BASE);
+
         // A0-A1
         (*Alpha_State_Ptr)();   // jump to an Alpha state (A0,A1,...)
 
-        if(DAC_switch == 1)
-        {
-            DAC_setShadowValue(DACA_BASE, DAC_Val);   // Feedback Volt
-            DEVICE_DELAY_US(2);
-            DAC_setShadowValue(DACB_BASE, (CLC_gvOut/CLC_MAX_PWM_SWITCH_FREQ_HZ*4095U));
-            DEVICE_DELAY_US(2);
-        }
+        DAC_targets_switching();
 
-        if(PWMSta.PriPwmEnb_Act == 1U & PWMSta.PriPwmEnb_Sta == 0U)
-        {
-            CLC_HAL_setProfilingGPIO4();
-            PWMSta.PriPwmEnb_Sta = 1U;
-            //CLC_clearTrip = 1;
-        }
-        else if(PWMSta.PriPwmEnb_Act == 0U & PWMSta.PriPwmEnb_Sta == 1U)
-        {
-            CLC_HAL_resetProfilingGPIO4();
-            PWMSta.PriPwmEnb_Sta = 0U;
-            //CLC_StopPWM();
-        }
-        else
-        {
-            /* nothing */
-        }
+        // if sec. side PWM (Hardware) has been active and the software shows inactive,
+        // then change the software status, and vice versa
 
-        if(PWMSta.SecPwmEnb_Act == 1U & PWMSta.SecPwmEnb_Sta == 0U)
-        {
-            CLC_HAL_setProfilingGPIO5();
-            PWMSta.SecPwmEnb_Sta = 1U;
-        }
-        else if(PWMSta.SecPwmEnb_Act == 0U & PWMSta.SecPwmEnb_Sta == 1U)
-        {
-            CLC_HAL_resetProfilingGPIO5();
-            PWMSta.SecPwmEnb_Sta = 0U;
-        }
-        else
-        {
-            /* nothing */
-        }
+//        if(PWMSta.SecPwmEnb_Act && !PWMSta.SecPwmEnb_Sta)
+//        {
+//            CLC_HAL_setProfilingGPIO5();
+//            PWMSta.SecPwmEnb_Sta = 1;
+//        }
+//        else if(!PWMSta.SecPwmEnb_Act && PWMSta.SecPwmEnb_Sta)
+//        {
+//            CLC_HAL_resetProfilingGPIO5();
+//            PWMSta.SecPwmEnb_Sta = 0;
+//        }
+//        else
+//        {
+//            /* nothing */
+//        }
     }
 }
 
@@ -120,20 +106,19 @@ interrupt void ISR1(void)
 
 //    CLC_HAL_resetProfilingGPIO6();
 
-    Interrupt_register(CLC_ISR1_TRIG, &ISR1_second);
+    Interrupt_register(CLC_ISR1_TRIG, &ISR1_secondTime);
 }
 #endif
 
 #if CLC_ISR1_RUNNING_ON == C28x_CORE
-interrupt void ISR1_second(void)
+interrupt void ISR1_secondTime(void)
 {
-  //
-  //CLC_HAL_setProfilingGPIO2();
-  //
+//    CLC_HAL_setProfilingGPIO2();
+
     CLC_runISR1_secondTime();
     CLC_HAL_clearISR1InterruputFlag();
 
-  //CLC_HAL_resetProfilingGPIO2();
+//    CLC_HAL_resetProfilingGPIO2();
 
     Interrupt_register(CLC_ISR1_TRIG, &ISR1);
 }
@@ -142,9 +127,7 @@ interrupt void ISR1_second(void)
 #if CLC_ISR2_RUNNING_ON == C28x_CORE
 interrupt void ISR2_primToSecPowerFlow(void)
 {
-    //
     // enable group 3 interrupt only to interrupt ISR2
-    //
     IER |= 0x4;
     IER &= 0x4;
     EINT;
@@ -180,10 +163,10 @@ interrupt void sciaRxISR(void)
 
     Accept_words = SCI_getRxFIFOStatus(SCIA_BASE);
 
-    for (uwtmp = 0;uwtmp < Accept_words; uwtmp++)
+    for (uwtmp = 0; uwtmp < Accept_words; uwtmp++)
     {
     // Read two characters from the FIFO.
-    receivedChar[uwtmp] = SCI_readCharBlockingFIFO(SCIA_BASE);
+        receivedChar[uwtmp] = SCI_readCharBlockingFIFO(SCIA_BASE);
     }
 
     // Clear the SCI RXFF interrupt and acknowledge the PIE interrupt.
@@ -228,6 +211,7 @@ void Task_A1(void)
 
     /*****   Start to Edit CAN GUI Interface    ************/
 
+/*
     if(send_En)
     {
         Can_Encode(txMsgData_OBC1, 0x572);
@@ -246,57 +230,23 @@ void Task_A1(void)
         PWMSta.SecPwmEnb_Act = 0U;
     }
     DcChargUnitSt_Cmd = (enum State_GUI)(uwObcCtrlMdCmd & 0x0F);
+*/
     /* Continue voSetCtrlMd to edit act on ISR3 */
 }
 
-void DAC_init(void)
-{
-    // Set VDAC as the DAC reference voltage.
-    // Edit here to use ADC VREF as the reference voltage.
-    DAC_setReferenceVoltage(DACA_BASE, DAC_REF_VDAC);
-    DAC_setReferenceVoltage(DACB_BASE, DAC_REF_VDAC);
-    DAC_setReferenceVoltage(DACC_BASE, DAC_REF_VDAC);
-
-    // Enable the DAC output
-    DAC_enableOutput(DACA_BASE);
-    DAC_enableOutput(DACB_BASE);
-    DAC_enableOutput(DACC_BASE);
-
-    // Set the DAC shadow output to 0
-    DAC_setShadowValue(DACA_BASE, 0);
-    DAC_setShadowValue(DACB_BASE, 0);
-    DAC_setShadowValue(DACC_BASE, 0);
-
-    // Set VDAC as the DAC reference voltage.
-    // Edit here to use ADC VREF as the reference voltage.
-    DAC_setReferenceVoltage(DACA_BASE, DAC_REF_VDAC);
-    DAC_setReferenceVoltage(DACB_BASE, DAC_REF_VDAC);
-    DAC_setReferenceVoltage(DACC_BASE, DAC_REF_VDAC);
-
-    // Enable the DAC output
-    DAC_enableOutput(DACA_BASE);
-    DAC_enableOutput(DACB_BASE);
-    DAC_enableOutput(DACC_BASE);
-
-    // Set the DAC shadow output to 0
-    DAC_setShadowValue(DACA_BASE, 0);
-    DAC_setShadowValue(DACB_BASE, 0);
-    DAC_setShadowValue(DACC_BASE, 0);
-
-    // Delay for buffered DAC to power up
-    DEVICE_DELAY_US(10);
-}
-
+// before ADCs eat real value from the sensors, each of related variables named SenseOff_pu would average to
+// obtain the value, which presents the background noise value
+//float CLC_iPrimTankSenseOff_pu_sum, CLC_vPrimSenseOff_pu_sum, CLC_iSecSenseOff_pu_sum, CLC_vSecSenseOff_pu_sum;
 void clc_ADC_Offset_Calc(void)
 {
     uint16_t itmp;
 
-    float CLC_iPrimSenseOff_pu_sum, CLC_vPrimSenseOff_pu_sum, CLC_iSecSenseOff_pu_sum, CLC_vSecSenseOff_pu_sum;
+    float CLC_iPrimTankSenseOff_pu_sum, CLC_vPrimSenseOff_pu_sum, CLC_iSecSenseOff_pu_sum, CLC_vSecSenseOff_pu_sum;
 
-    CLC_iPrimSenseOff_pu_sum = 0.0;
-    CLC_vPrimSenseOff_pu_sum = 0.0;
-    CLC_iSecSenseOff_pu_sum = 0.0;
-    CLC_vSecSenseOff_pu_sum =0.0;
+    CLC_iPrimTankSenseOff_pu_sum = 0;
+    CLC_vPrimSenseOff_pu_sum = 0;
+    CLC_iSecSenseOff_pu_sum = 0;
+    CLC_vSecSenseOff_pu_sum = 0;
 
     DEVICE_DELAY_US(100);
 
@@ -304,21 +254,22 @@ void clc_ADC_Offset_Calc(void)
     {
         DEVICE_DELAY_US(15);
 
-        CLC_iPrimSenseOff_pu_sum += (CLC_iPrimSense_pu*0.5f)+0.5f;
-        CLC_iSecSenseOff_pu_sum += (CLC_iSecSense_pu*0.5f)+0.5f;
+        CLC_iPrimTankSenseOff_pu_sum += (CLC_iPrimTankSense_pu * 0.5f) + 0.5f;
+        CLC_iSecSenseOff_pu_sum += (CLC_iSecSense_pu * 0.5f) + 0.5f;
         CLC_vPrimSenseOff_pu_sum += CLC_vPrimSense_pu;
         CLC_vSecSenseOff_pu_sum += CLC_vSecSense_pu;
     }
 
-    CLC_iPrimSenseOff_pu = CLC_iPrimSenseOff_pu_sum * 0.01f;
+    CLC_iPrimTankSenseOff_pu = CLC_iPrimTankSenseOff_pu_sum * 0.01f;
     CLC_iSecSenseOff_pu = CLC_iSecSenseOff_pu_sum * 0.01f;
     CLC_vPrimSenseOff_pu = CLC_vPrimSenseOff_pu_sum * 0.01f;
     CLC_vSecSenseOff_pu = CLC_vSecSenseOff_pu_sum * 0.01f;
+
+//    CLC_iSecSenseOff_pu = 0.5;
+
 }
 
-//
-// CAN A ISR - The interrupt service routine called when a CAN interrupt is
-//             triggered on CAN module A.
+// CAN A ISR - The interrupt service routine called when a CAN interrupt is triggered on CAN module A.
 interrupt void canaISR(void)
 {
     uint32_t status,status1;
@@ -328,7 +279,7 @@ interrupt void canaISR(void)
     if(status == CAN_INT_INT0ID_STATUS)
     {
         status1 = CAN_getStatus(CANA_BASE);
-        if(((status1  >= CAN_STATUS_LEC_STUFF) & (status1  <= CAN_STATUS_LEC_MSK)) | (status1  == CAN_STATUS_PERR))
+        if(((status1 >= CAN_STATUS_LEC_STUFF) & (status1 <= CAN_STATUS_LEC_MSK)) | (status1  == CAN_STATUS_PERR))
             errorFlag = 1;
         else if(status1 == CAN_STATUS_RXOK)
         {
@@ -352,9 +303,8 @@ interrupt void canaISR(void)
         else
             CAN_clearInterruptStatus(CANA_BASE, CAN_INT_INT0ID_STATUS);
     }
-    else {
+    else
         errorFlag = 1;
-    }
 
     CAN_clearGlobalInterruptStatus(CANA_BASE, CAN_GLOBAL_INT_CANINT0);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP9);
@@ -400,7 +350,7 @@ void HAL_init()
 
     clc_HAL_setProtect();
 
-    clc_HAL_setBdVoutProtect();  // Add Tz1 protect for Vout Over Voltage protect
+//    clc_HAL_setBdVoutProtect();  // Add Tz1 protect for Vout Over Voltage protect
 
     // setup trigger for the ADC conversions
     clc_HAL_setTrigForADC();
@@ -422,5 +372,7 @@ void HAL_init()
 
     clc_ADC_Offset_Calc();
 
-    DAC_init();
+    DAC_init(DACA_BASE);
+    DAC_init(DACB_BASE);
+    DAC_init(DACC_BASE);
 }

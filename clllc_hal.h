@@ -119,9 +119,9 @@ extern uint16_t Cla1ProgRunSize;
     #pragma INTERRUPT (ISR1, HPI)
     interrupt void ISR1(void);
 
-    #pragma INTERRUPT (ISR1_second, HPI)
-    #pragma CODE_SECTION(ISR1_second,"isrcodefuncs");
-    interrupt void ISR1_second(void);
+    #pragma INTERRUPT (ISR1_secondTime, HPI)
+    #pragma CODE_SECTION(ISR1_secondTime,"isrcodefuncs");
+    interrupt void ISR1_secondTime(void);
 
     static inline void CLC_HAL_clearISR1InterruputFlag(void);
 #endif
@@ -150,10 +150,10 @@ extern uint16_t Cla1ProgRunSize;
 #endif
 
 // Inline functions
+
+extern int16_t tripIndicator;
 static inline int16_t CLC_HAL_readTripFlags(void)
 {
-    int16_t tripIndicator;
-
     if (XBAR_getInputFlagStatus(CLC_VPRIM_CMPSS_XBAR_FLAG1) || XBAR_getInputFlagStatus(CLC_VPRIM_CMPSS_XBAR_FLAG2))
     {
         tripIndicator = 1;
